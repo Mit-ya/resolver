@@ -1,0 +1,48 @@
+name: tmp-download-statbooks
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download books
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p books
+
+          python3 - <<'PY'
+          import json, urllib.parse, urllib.request
+          public='https://disk.yandex.ru/d/whjL3MVjhLJ6vQ'
+          api='https://cloud-api.yandex.net/v1/disk/public/resources/download?'+urllib.parse.urlencode({'public_key':public})
+          with urllib.request.urlopen(api, timeout=60) as r:
+              data=json.load(r)
+          href=data['href']
+          req=urllib.request.Request(href, headers={'User-Agent':'Mozilla/5.0'})
+          with urllib.request.urlopen(req, timeout=300) as r, open('books/1977_Narodnoe_obrazovanie_nauka_i_kultura_SSSR.djvu','wb') as f:
+              while True:
+                  chunk=r.read(1024*1024)
+                  if not chunk: break
+                  f.write(chunk)
+          PY
+
+          curl -fL --retry 3 --connect-timeout 30 --max-time 300 \
+            'https://alcdata.narod.ru/schools_1989/schools_1989.djvu' \
+            -o 'books/1989_Narodnoe_obrazovanie_i_kultura_SSSR.djvu'
+
+          curl -fL --retry 3 --connect-timeout 30 --max-time 300 \
+            'https://istmat.info/files/uploads/33489/nauchno_tehnicheskiy_progress.pdf' \
+            -o 'books/1990_Nauchno_tehnicheskiy_progress_v_SSSR.pdf'
+
+          ls -lh books
+          file books/* || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ussr-statbooks
+          path: books/*
+          if-no-files-found: error
+          retention-days: 1
