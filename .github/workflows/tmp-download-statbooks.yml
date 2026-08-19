@@ -3,6 +3,8 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/tmp-download-statbooks.yml']
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
@@ -16,32 +18,14 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p books
-
-          python3 - <<'PY'
-          import json, urllib.parse, urllib.request
-          public='https://disk.yandex.ru/d/whjL3MVjhLJ6vQ'
-          api='https://cloud-api.yandex.net/v1/disk/public/resources/download?'+urllib.parse.urlencode({'public_key':public})
-          with urllib.request.urlopen(api, timeout=60) as r:
-              data=json.load(r)
-          href=data['href']
-          req=urllib.request.Request(href, headers={'User-Agent':'Mozilla/5.0'})
-          with urllib.request.urlopen(req, timeout=300) as r, open('books/1977_Narodnoe_obrazovanie_nauka_i_kultura_SSSR.djvu','wb') as f:
-              while True:
-                  chunk=r.read(1024*1024)
-                  if not chunk: break
-                  f.write(chunk)
-          PY
-
-          curl -fL --retry 3 --connect-timeout 30 --max-time 300 \
-            'https://alcdata.narod.ru/schools_1989/schools_1989.djvu' \
-            -o 'books/1989_Narodnoe_obrazovanie_i_kultura_SSSR.djvu'
-
-          curl -fL --retry 3 --connect-timeout 30 --max-time 300 \
-            'https://istmat.info/files/uploads/33489/nauchno_tehnicheskiy_progress.pdf' \
-            -o 'books/1990_Nauchno_tehnicheskiy_progress_v_SSSR.pdf'
-
+          curl -fL --retry 3 --connect-timeout 30 --max-time 600 \
+            'https://cdn.ruarxive.org/public/saved_istmat/books/26588_1.pdf' \
+            -o 'books/1989_Narodnoe_obrazovanie_i_kultura_SSSR.pdf'
+          curl -fL --retry 3 --connect-timeout 30 --max-time 600 \
+            'https://cdn.ruarxive.org/public/saved_istmat/books/33489_1.pdf' \
+            -o 'books/1990_Nauchno-tehnicheskiy_progress_v_SSSR.pdf'
           ls -lh books
-          file books/* || true
+          file books/*
 
       - name: Publish to temporary branch
         shell: bash
