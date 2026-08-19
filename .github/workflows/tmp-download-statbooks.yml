@@ -27,6 +27,13 @@ jobs:
           ls -lh books
           file books/*
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ussr-statbooks
+          path: books/*.pdf
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Publish to temporary branch
         shell: bash
         run: |
