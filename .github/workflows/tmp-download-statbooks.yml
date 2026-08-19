@@ -2,7 +2,10 @@ name: tmp-download-statbooks
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+    paths: ['.github/workflows/tmp-download-statbooks.yml']
+
+permissions:
+  contents: write
 
 jobs:
   download:
@@ -40,9 +43,19 @@ jobs:
           ls -lh books
           file books/* || true
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ussr-statbooks
-          path: books/*
-          if-no-files-found: error
-          retention-days: 1
+      - name: Publish to temporary branch
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git init out
+          cd out
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b statbooks-output
+          cp -a ../books .
+          git add books
+          git commit -m 'temporary USSR statistical books'
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin statbooks-output
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
